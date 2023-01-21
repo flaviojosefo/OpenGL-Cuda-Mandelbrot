@@ -7,26 +7,36 @@
 #include <GL/freeglut.h>
 #include <cuda_gl_interop.h>
 
+#pragma region Global Variables
+
+// The amount of bytes per pixel
 const int BYTES_PER_PIXEL = 3;   /// Red, Green, Blue
 
 // The main window title
 const char *main_title = "CUDA/OpenGL MandelBrot Fractal";
 
 // The window/texture dimensions
-int win_width = 800,
-    win_height = 600;
+const int WIDTH = 1280,
+		  HEIGHT = 720;
 
 // The window's aspect ratio
-double aspect_ratio = 1.0;
+const double ASPECT_RATIO = WIDTH / (double)HEIGHT;
 
 // Fractal display variables
 double2 center{ -0.75, 0.0 };
 double scale = 1.0;
 int iterations = 100;
 
+// The time necessary to generate an image
+float frame_time_ms = 0;
+
 // Cuda related variables
 GLuint pbo = 0, tex = 0;
 struct cudaGraphicsResource *cuda_pbo_resource;
+
+#pragma endregion
+
+#pragma region Mandelbrot Fractal Kernel
 
 // Ultra fractal colors
 __constant__ uchar3 colorMap[5] = {
@@ -88,7 +98,7 @@ __device__ uchar3 getColor(double t) {
 }
 
 // Calculation of Z^2 + C (returns a color directly)
-__device__ uchar3 iterateMandelOpenGL(double c_real, double c_imag, int max_iters) {
+__device__ uchar3 iterateMandel(double c_real, double c_imag, int max_iters) {
 
 	int n = 0;
 	double real = c_real;
@@ -114,8 +124,8 @@ __device__ uchar3 iterateMandelOpenGL(double c_real, double c_imag, int max_iter
 	return {};
 }
 
-// Main Fractal generation method (GPU - OpenGL)
-__global__ void generateFractalOpenGL(int width, int height,
+// Main Fractal generation method
+__global__ void generateFractal(int width, int height,
 									  double aspect_ratio,
 									  double2 center,
 									  double scale,
@@ -131,7 +141,7 @@ __global__ void generateFractalOpenGL(int width, int height,
 		double cX = toFractalCoords(px, width, scale, aspect_ratio) + center.x;
 		double cY = -toFractalCoords(py, height, scale) + center.y;
 
-		uchar3 color = iterateMandelOpenGL(cX, cY, max_iters);
+		uchar3 color = iterateMandel(cX, cY, max_iters);
 
 		int index = py * width + px;
 
@@ -139,6 +149,11 @@ __global__ void generateFractalOpenGL(int width, int height,
 	}
 }
 
+#pragma endregion
+
+#pragma region OpenGL/CUDA Interop
+
+// Create method references
 void initialize(int, char *[]);
 void initWindow(int, char *[]);
 void initPixelBuffer(void);
@@ -165,7 +180,7 @@ void initialize(int argc, char *argv[]) {
 	);
 
 	// Set up 2D orthographic region
-	gluOrtho2D(0, win_width, win_height, 0);
+	gluOrtho2D(0, WIDTH, HEIGHT, 0);
 
 	// Set up mouse functions
 	glutMouseWheelFunc(mouseWheel);
@@ -188,14 +203,24 @@ char *createWindowTitle() {
 	char *buffer = (char *)malloc(buffer_size * sizeof(char));
 
 	// Concatenate 'strings'
-	snprintf(buffer, buffer_size, "%s | Resolution: %d x %d | Center: %.2f; %.2f | Iterations: %d | Scale: %.2f",
-			 main_title, win_width, win_height, center.x, center.y, iterations, 1.0 / scale);
+	snprintf(buffer, buffer_size, 
+			 "%s | Resolution: %d x %d | Center: %.2f; %.2f | Iterations: %d | Scale: %.2f | Frame Time: %.2f ms",
+			 main_title, WIDTH, HEIGHT, center.x, center.y, iterations, 1.0 / scale, frame_time_ms);
 
 	// Return the buffer (pointer)
 	return buffer;
 }
 
-// Setp up glut and glew
+// Updates OpenGL's window title
+void updateWindowTitle() {
+
+	// Set new window title
+	char *window_title = createWindowTitle();
+	glutSetWindowTitle(window_title);
+	free(window_title);
+}
+
+// Set up glut and glew
 void initWindow(int argc, char *argv[]) {
 
 	glutInit(&argc, argv);
@@ -209,15 +234,11 @@ void initWindow(int argc, char *argv[]) {
 		GLUT_ACTION_GLUTMAINLOOP_RETURNS
 	);
 
-	glutInitWindowSize(win_width, win_height);
+	glutInitWindowSize(WIDTH, HEIGHT);
 
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
 
-	char *window_title = createWindowTitle();
-
-	int window_handle = glutCreateWindow(window_title);
-
-	free(window_title);
+	int window_handle = glutCreateWindow("TITLE");
 
 	// Print error if the program couldn't create a window
 	if (window_handle < 1) {
@@ -237,7 +258,7 @@ void initPixelBuffer() {
 
 	glGenBuffers(1, &pbo);
 	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pbo);
-	glBufferData(GL_PIXEL_UNPACK_BUFFER, BYTES_PER_PIXEL * win_width * win_height * sizeof(GLubyte), 0,
+	glBufferData(GL_PIXEL_UNPACK_BUFFER, BYTES_PER_PIXEL * WIDTH * HEIGHT * sizeof(GLubyte), 0,
 				 GL_STREAM_DRAW);
 	glGenTextures(1, &tex);
 	glBindTexture(GL_TEXTURE_2D, tex);
@@ -249,24 +270,41 @@ void initPixelBuffer() {
 // Handle window reshaping
 void resize(int width, int height) {
 	// Lock the display
-	glutReshapeWindow(win_width, win_height);
+	glutReshapeWindow(WIDTH, HEIGHT);
 }
 
 // Handle OpenGL rendering
 void render() {
 
+	// The "bitmap" to be used by the device
 	uchar3 *fractal_d = 0;
+
+	// Cuda events to record and calculate frame time
+	cudaEvent_t start, stop;
+	cudaEventCreate(&start);
+	cudaEventCreate(&stop);
 
 	cudaGraphicsMapResources(1, &cuda_pbo_resource, 0);
 	cudaGraphicsResourceGetMappedPointer((void **)&fractal_d, NULL, cuda_pbo_resource);
 
 	// Define blocks and threads
-	dim3 grid_size((win_width + 31) / 32, (win_height + 31) / 32);
+	dim3 grid_size((WIDTH + 31) / 32, (HEIGHT + 31) / 32);
 	dim3 block_size(32, 32);
 
+	// Record the first event
+	cudaEventRecord(start);
+
 	// Execute the kernel
-	generateFractalOpenGL<<<grid_size, block_size>>>(win_width, win_height, aspect_ratio, center, scale, iterations, fractal_d);
-	cudaDeviceSynchronize();
+	generateFractal<<<grid_size, block_size>>>(WIDTH, HEIGHT, ASPECT_RATIO, center, scale, iterations, fractal_d);
+
+	// Record the second event
+	cudaEventRecord(stop);
+
+	// Block CPU execution until the "stop" event is recorded
+	cudaEventSynchronize(stop);
+
+	// Calculate frame time in milliseconds
+	cudaEventElapsedTime(&frame_time_ms, start, stop);
 
 	cudaGraphicsUnmapResources(1, &cuda_pbo_resource, 0);
 }
@@ -274,13 +312,13 @@ void render() {
 // Draw a quad and texture with the same size as the display window
 void drawTexture() {
 
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, win_width, win_height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, WIDTH, HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
 	glEnable(GL_TEXTURE_2D);
 	glBegin(GL_QUADS);
 	glTexCoord2f(0.0f, 0.0f); glVertex2f(0.0f, 0.0f);
-	glTexCoord2f(0.0f, 1.0f); glVertex2f(0.0f, win_height);
-	glTexCoord2f(1.0f, 1.0f); glVertex2f(win_width, win_height);
-	glTexCoord2f(1.0f, 0.0f); glVertex2f(win_width, 0.0f);
+	glTexCoord2f(0.0f, 1.0f); glVertex2f(0.0f, HEIGHT);
+	glTexCoord2f(1.0f, 1.0f); glVertex2f(WIDTH, HEIGHT);
+	glTexCoord2f(1.0f, 0.0f); glVertex2f(WIDTH, 0.0f);
 	glEnd();
 	glDisable(GL_TEXTURE_2D);
 }
@@ -292,6 +330,7 @@ void display() {
 	render();
 	drawTexture();
 	glutSwapBuffers();
+	updateWindowTitle();
 }
 
 // Release CUDA resources/buffers
@@ -303,6 +342,10 @@ void exitCudaInterop() {
 		glDeleteTextures(1, &tex);
 	}
 }
+
+#pragma endregion
+
+#pragma region Input Handling
 
 int pressed;
 int2 startCoords;
@@ -329,11 +372,6 @@ void mousePress(int button, int state, int x, int y) {
 			center = { -0.75, 0.0 };
 			scale = 1.0;
 			iterations = 100;
-
-			// Set new window title
-			char *window_title = createWindowTitle();
-			glutSetWindowTitle(window_title);
-			free(window_title);
 		}
 	}
 }
@@ -345,15 +383,10 @@ void mouseDrag(int x, int y) {
 	if (pressed == GLUT_LEFT_BUTTON) {
 
 		// Move fractal center based on mouse movement
-		int2 delta = { (x - startCoords.x) * aspect_ratio, (y - startCoords.y) * aspect_ratio };
+		int2 delta = { (x - startCoords.x) * ASPECT_RATIO, (y - startCoords.y) * ASPECT_RATIO };
 		center.x -= delta.x * 0.002 * scale;
 		center.y += delta.y * 0.002 * scale;
 		startCoords = { x, y };
-
-		// Set window title
-		char *window_title = createWindowTitle();
-		glutSetWindowTitle(window_title);
-		free(window_title);
 
 		// Call a redraw
 		glutPostRedisplay();
@@ -364,15 +397,15 @@ void mouseDrag(int x, int y) {
 void zoom(int dir, int x, int y) {
 
 	// Save the old position (after converting window coordinates into fractal coordinates)
-	double oldX = toFractalCoords(x, win_width, scale, aspect_ratio);
-	double oldY = toFractalCoords(y, win_height, scale);
+	double oldX = toFractalCoords(x, WIDTH, scale, ASPECT_RATIO);
+	double oldY = toFractalCoords(y, HEIGHT, scale);
 
 	// Apply scale change
 	scale *= (1.0f - dir * 0.04);
 
 	// Move center based on amount of zoom applied
-	center.x -= toFractalCoords(x, win_width, scale, aspect_ratio) - oldX;
-	center.y += toFractalCoords(y, win_height, scale) - oldY;
+	center.x -= toFractalCoords(x, WIDTH, scale, ASPECT_RATIO) - oldX;
+	center.y += toFractalCoords(y, HEIGHT, scale) - oldY;
 }
 
 // Increase/Decrease ther number of iterations
@@ -395,22 +428,24 @@ void mouseWheel(int button, int dir, int x, int y) {
 		zoom(dir, x, y);
 	}
 
-	// Set new window title
-	char *window_title = createWindowTitle();
-	glutSetWindowTitle(window_title);
-	free(window_title);
-
 	// Call a redraw
 	glutPostRedisplay();
 }
 
+#pragma endregion
+
+// The main program function
 int main(int argc, char *argv[]) {
 
-	aspect_ratio = win_width / (double)win_height;
-
+	// Initialize OpenGL and CUDA interoperability
 	initialize(argc, argv);
 
+	// Let glut handle the main rendering loop
 	glutMainLoop();
 
+	// Release CUDA resources when closing the application
 	atexit(exitCudaInterop);
+
+	// Equivalent of "return 0"
+	exit(EXIT_SUCCESS);
 }
