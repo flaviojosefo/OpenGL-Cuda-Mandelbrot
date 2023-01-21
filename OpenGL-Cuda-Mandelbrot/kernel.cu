@@ -14,7 +14,7 @@ const char *main_title = "CUDA/OpenGL MandelBrot Fractal";
 
 // The window/texture dimensions
 int win_width = 800,
-win_height = 600;
+    win_height = 600;
 
 // The window's aspect ratio
 double aspect_ratio = 1.0;
@@ -62,8 +62,8 @@ __device__ uchar3 hermColor(int index, double param) {
 	double t = param * param * (3.0f - 2.0f * param);
 
 	return { (unsigned char)(((1.0 - t) * (double)colorMap[index].x) + (t * (double)colorMap[index + 1].x)),
-		(unsigned char)(((1.0 - t) * (double)colorMap[index].y) + (t * (double)colorMap[index + 1].y)),
-		(unsigned char)(((1.0 - t) * (double)colorMap[index].z) + (t * (double)colorMap[index + 1].z)) };
+			 (unsigned char)(((1.0 - t) * (double)colorMap[index].y) + (t * (double)colorMap[index + 1].y)),
+			 (unsigned char)(((1.0 - t) * (double)colorMap[index].z) + (t * (double)colorMap[index + 1].z)) };
 }
 
 // Returns a color
