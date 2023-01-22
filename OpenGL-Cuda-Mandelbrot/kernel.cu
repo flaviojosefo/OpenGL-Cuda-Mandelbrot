@@ -125,11 +125,11 @@ __device__ uchar3 iterateMandel(double c_real, double c_imag, int max_iters) {
 
 // Main Fractal generation method
 __global__ void generateFractal(int width, int height,
-									  double aspect_ratio,
-									  double2 center,
-									  double scale,
-									  int max_iters,
-									  uchar3 *fractal) {
+								double aspect_ratio,
+								double2 center,
+								double scale,
+								int max_iters,
+								uchar3 *fractal) {
 
 	int px = blockIdx.x * blockDim.x + threadIdx.x;
 	int py = blockIdx.y * blockDim.y + threadIdx.y;
