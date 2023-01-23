@@ -14,7 +14,8 @@ libraries to access **OpenGL** functionality, including user input.
 
 **Disclaimer:** Due to this being the last project of the subject and also the teaching component of the 
 cycle of studies, the conclusion to this report also carries out a brief mention to the previous projects 
-(which can be found [here](https://github.com/fs000/MatrixMultiplication) and [here](https://github.com/fs000/Mandelbrot-Fractal)).
+(which can be found on [Matrix Multiplication](https://github.com/fs000/MatrixMultiplication) and 
+[Mandelbrot Fractal](https://github.com/fs000/Mandelbrot-Fractal)).
 
 ## Instructions
 
