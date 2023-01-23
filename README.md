@@ -10,6 +10,8 @@ This project was built on **CUDA C** with the main goal of generating an interac
 It uses the [`GLEW`](https://glew.sourceforge.net/) and [`FreeGLUT`](https://freeglut.sourceforge.net/) 
 libraries to access **OpenGL** functionality, including user input.
 
+![The Mandelbrot Fractal](/images/fractal/mandelbrot_set.png)
+
 **Disclaimer:** Due to this being the last project of the subject and also the teaching component of the 
 cycle of studies, the conclusion to this report also carries out a brief mention to the previous projects 
 (which can be found [here](https://github.com/fs000/MatrixMultiplication) and [here](https://github.com/fs000/Mandelbrot-Fractal)).
