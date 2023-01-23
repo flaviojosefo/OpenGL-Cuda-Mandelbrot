@@ -6,7 +6,7 @@
 
 ## Summary
 
-This project was built on **CUDA C** with the main goal of generating an interactive Mandelbrot Fractal.
+This project was built on **CUDA C (12.0)** with the main goal of generating an interactive Mandelbrot Fractal.
 It uses the [`GLEW`](https://glew.sourceforge.net/) and [`FreeGLUT`](https://freeglut.sourceforge.net/) 
 libraries to access **OpenGL** functionality, including user input.
 
