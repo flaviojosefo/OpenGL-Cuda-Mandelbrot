@@ -32,33 +32,33 @@ at the bottom of the only script present (`kernel.cu`). Some very light changes 
 
 The `kernel.cu` file is divided into the following regions:
 
-1. **Global Variables**
-    This section contains all variables that are required in different parts of the code (i.e. multiple methods).
-    Note that `WIDTH` and `HEIGHT` can be manually changed before building the project. These variables control 
-	both the OpenGL window size and the fractal texture size (which will surely have an impact on performance).
+1. **Global Variables**  
+ This section contains all variables that are required in different parts of the code (i.e. multiple methods).
+ Note that `WIDTH` and `HEIGHT` can be manually changed before building the project. These variables control 
+ both the OpenGL window size and the fractal texture size (which will surely have an impact on performance).
 
-2. **Mandelbrot Fractal Kernel**
-    This section is the most important for the project at hand. It contains the *kernel* with which the fractal 
-	is generated (`generateFractal`), all other `__device__` type helper methods it requires and some `__constant__` 
-	variables which are responsible for coloring.
-    One method that might catch some attention is `toFractalCoords`. This method transforms any coordinate into 
-	their correspondant in fractal space. As this is used outside of the *kernel* it not only sports the `__device__` 
-	tag but also the `__host__` one, informing the compiler that this function can be run by both the GPU and CPU.
+2. **Mandelbrot Fractal Kernel**  
+ This section is the most important for the project at hand. It contains the *kernel* with which the fractal 
+ is generated (`generateFractal`), all other `__device__` type helper methods it requires and some `__constant__` 
+ variables which are responsible for coloring.
+ One method that might catch some attention is `toFractalCoords`. This method transforms any coordinate into 
+ their correspondant in fractal space. As this is used outside of the *kernel* it not only sports the `__device__` 
+ tag but also the `__host__` one, informing the compiler that this function can be run by both the GPU and CPU.
 
-3. **OpenGL/CUDA Interop**
-    This section is responsible for setting up any and all OpenGL functionalities through the use of several `glew` 
-	and `glut` methods. Mainly, it starts the OpenGL context, and sets up all input handling and main loop work 
-	(such as the drawing of a quad facing the *camera* and its texture).
-    The `render()` method is arguably the most important. It's here where the program executes the *kernel*, 
-	registers events (in order to calculate the frame time) and maps and unmaps resources from Cuda to OpenGL 
-	(using `cudaGraphics` functions). The main resource being passed around is the *bitmap* that is "painted" by 
-	the *kernel* (`fractal_d`). It is a `uchar3` (in other words, a vector of 3 `unsigned char`), and as such can 
-	hold up to 256 values per coordinate (meaning a total of **16 777 216** colors can be processed).
+3. **OpenGL/CUDA Interop**  
+ This section is responsible for setting up any and all OpenGL functionalities through the use of several `glew`
+ and `glut` methods. Mainly, it starts the OpenGL context, and sets up all input handling and main loop work
+ (such as the drawing of a quad facing the *camera* and its texture).
+ The `render()` method is arguably the most important. It's here where the program executes the *kernel*,
+ registers events (in order to calculate the frame time) and maps and unmaps resources from Cuda to OpenGL
+ (using `cudaGraphics` functions). The main resource being passed around is the *bitmap* that is "painted" by
+ the *kernel* (`fractal_d`). It is a `uchar3` (in other words, a vector of 3 `unsigned char`), and as such can
+ hold up to 256 values per coordinate (meaning a total of **16 777 216** colors can be processed).
 
-4. **Input Handling**
-    This section of the code controls the program's response based on user input. It detects such inputs based on event 
-	callbacks passed from `glut`.
-    Some fractal generation global variables (`center`, `scale` and `iterations`) are all manipulated by the user here.
+4. **Input Handling**  
+ This section of the code controls the program's response based on user input. It detects such inputs based on event 
+ callbacks passed from `glut`.
+ Some fractal generation global variables (`center`, `scale` and `iterations`) are all manipulated by the user here.
 
 ## Results
 
