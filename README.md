@@ -90,9 +90,9 @@ The results below were obtained on an `NVIDIA GeForce GTX 1080`:
 As we can see from either the table or graph, it comes as no surprise that the increase in *frame time* is related 
 to the image dimensions and iteration count. 
 
-Either way, these are all really good results! ~6 ms to produce such an impressive image is a feat in itself.
+Either way, these are all really good results! ~`6 ms` to produce such an impressive image is a feat in itself.
 Also, always keep in mind, that these results will shift back and forth a lot as we dive into any of the fractal's 
-regions (outside of the set). Some, even with a low resolution and iteration count, can take as high as ~60 ms to 
+regions (outside of the set). Some, even with a low resolution and iteration count, can take as high as ~`60 ms` to 
 produce an image! 
 
 ## Conclusions
