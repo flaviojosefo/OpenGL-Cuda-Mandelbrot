@@ -122,11 +122,11 @@ get the most out of it in order to accelerate any algorithm.
 
 It was very amusing to learn all this in class, and then apply it to a *real-world* application and see the results for myself.
 
-Not only that, but this project also allowed me to learn more about `OpenGL`. I knew about it, but just has never 
-used it. And now that I have, even though my contact was limited, I feel ready to do something else with the amassed knowledge.
+Not only that, but this project also allowed me to learn more about `OpenGL`. I knew about it, but just had never 
+used it. And now that I have, even though my contact was limited, I feel ready to do something else with this new amassed knowledge.
 
 The interoperability between `CUDA` and `OpenGL` was yet another test to my abilities. I didn't know if it could be done, 
-but the more I searched on the topic, the more I understood that it could, in fact, be accomplished and it wasn't too 
+but the more I searched on the topic, the more I understood that it could, in fact, be accomplished, and it wasn't too 
 different from what I had done thus far (on the previous project).
 
 Overall, I enjoyed all of the semester's projects. I learned a lot from all of them, and can't wait to expand and take 
