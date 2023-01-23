@@ -85,7 +85,7 @@ The results below were obtained on an `NVIDIA GeForce GTX 1080`:
 | **1000** |  12.062 ms  |   17.062 ms  |    34.872 ms   |
 | **5000** |  41.410 ms  |   58.466 ms  |   118.686 ms   |
 
-![Avg Frame Time Graph](/images/avg_time.svg)
+![Avg Frame Time Graph](/images/graphs/avg_time.svg)
 
 As we can see from either the table or graph, it comes as no surprise that the increase in *frame time* is related 
 to the image dimensions and iteration count. 
