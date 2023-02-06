@@ -2,7 +2,9 @@
 #include <math.h>
 #include <cuda_runtime.h>
 #include <device_launch_parameters.h>
+#define GLEW_STATIC
 #include <GL/glew.h>
+#define FREEGLUT_STATIC
 #include <GL/freeglut.h>
 #include <cuda_gl_interop.h>
 
